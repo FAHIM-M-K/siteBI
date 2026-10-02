@@ -1,1 +1,41 @@
-DATA_SOURCES.md
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Databricks & IDE files
+.databricks/
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Data & Model Local Artifacts (do not commit raw data/parquets)
+*.delta
+*.parquet
+*.csv
+*.zip
+*.tar.gz
+data/
+outputs/
+mlruns/
+
+DATA_SOURCES.md 
+PROJECT_PLAN.md
+README.md

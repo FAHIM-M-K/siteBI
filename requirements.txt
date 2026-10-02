@@ -1,0 +1,33 @@
+# Core Data Engineering & Databricks
+pyspark>=3.5.0
+delta-spark>=3.0.0
+
+# Geospatial & Indexing
+h3>=3.7.6,<5.0.0
+geopandas>=0.14.0
+shapely>=2.0.0
+pyproj>=3.6.0
+
+# API Ingestion & Data Clients
+requests>=2.31.0
+sodapy>=2.2.0
+urllib3>=2.0.0
+
+# Embedded Spatial Analytics & Modeling
+duckdb>=0.10.0
+mlflow>=2.10.0
+xgboost>=2.0.0
+lightgbm>=4.3.0
+shap>=0.45.0
+
+# Serving & Agent Framework (Sprint 4 & 5)
+fastapi>=0.110.0
+uvicorn>=0.28.0
+langgraph>=0.0.30
+chromadb>=0.4.24
+pydantic>=2.6.0
+
+# Testing & Dev
+pytest>=8.0.0
+pytest-mock>=3.12.0
+python-dotenv>=1.0.0
