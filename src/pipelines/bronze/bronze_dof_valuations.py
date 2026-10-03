@@ -4,6 +4,7 @@ import sys
 import os
 import uuid
 
+import pandas as pd
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import current_timestamp, lit
 
@@ -20,6 +21,9 @@ from src.utils.config import (
 from src.utils.socrata_client import SocrataClient, flatten_records
 
 spark = SparkSession.builder.appName("Bronze_DOF_Valuations").getOrCreate()
+spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
+spark.conf.set("spark.databricks.delta.optimizeWrite.enabled", "true")
+spark.conf.set("spark.databricks.delta.autoCompact.enabled", "true")
 spark.sql(f"CREATE DATABASE IF NOT EXISTS {BRONZE_DB}")
 
 # COMMAND ----------
@@ -38,17 +42,22 @@ source_uri     = f"socrata://{DOMAIN_NYC_OPEN_DATA}/{DATASET_ID}"
 total_ingested = 0
 
 SELECT_FIELDS = "bble,boro,block,lot,owner,bldgcl,taxclass,stories,fullval,avland,avtot,exland,extot,staddr,year,valtype"
+# Filter to the latest assessment roll (1.1M records total across all NYC tax lots)
+# Without this filter, the dataset attempts to pull 10+ years of historical rolls (9.85M records)
+LATEST_ROLL_YEAR = "2018/19"
 
 # COMMAND ----------
 for page in client.fetch_all(
     dataset_id=DATASET_ID,
-    page_size=25000,
+    page_size=50000,
     select=SELECT_FIELDS,
+    where=f"year = '{LATEST_ROLL_YEAR}'",
 ):
     if not page:
         continue
     cleaned = flatten_records(page)
-    df_chunk = spark.createDataFrame(cleaned)
+    pdf = pd.DataFrame(cleaned).astype(str)
+    df_chunk = spark.createDataFrame(pdf)
     df_chunk = (
         df_chunk
         .withColumn("_ingested_at", current_timestamp())
