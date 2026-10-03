@@ -1,8 +1,5 @@
 # Databricks notebook source
 # COMMAND ----------
-# MAGIC %pip install requests
-
-# COMMAND ----------
 import sys
 import os
 import uuid
@@ -20,7 +17,7 @@ from src.utils.config import (
     DOMAIN_NYC_OPEN_DATA,
     NYC_OPEN_DATA_APP_TOKEN,
 )
-from src.utils.socrata_client import SocrataClient
+from src.utils.socrata_client import SocrataClient, flatten_records
 
 spark = SparkSession.builder.appName("Bronze_Restaurant_Inspections").getOrCreate()
 spark.sql(f"CREATE DATABASE IF NOT EXISTS {BRONZE_DB}")
@@ -52,7 +49,8 @@ for page in client.fetch_all(
 ):
     if not page:
         continue
-    df_chunk = spark.createDataFrame(page)
+    cleaned = flatten_records(page)
+    df_chunk = spark.createDataFrame(cleaned)
     df_chunk = (
         df_chunk
         .withColumn("_ingested_at", current_timestamp())

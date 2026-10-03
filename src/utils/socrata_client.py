@@ -1,4 +1,5 @@
 import time
+import json
 import logging
 from typing import Dict, Any, List, Optional, Iterator
 import requests
@@ -9,6 +10,19 @@ from src.utils.config import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def flatten_records(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    cleaned = []
+    for r in records:
+        row = {}
+        for k, v in r.items():
+            if isinstance(v, (dict, list)):
+                row[k] = json.dumps(v)
+            else:
+                row[k] = v
+        cleaned.append(row)
+    return cleaned
 
 class SocrataClient:
     def __init__(
@@ -71,7 +85,9 @@ class SocrataClient:
 
                 if response.status_code == 200:
                     data = response.json()
-                    return data if isinstance(data, list) else []
+                    if isinstance(data, list):
+                        return flatten_records(data)
+                    return []
 
                 if response.status_code in (429, 500, 502, 503, 504):
                     sleep_time = self.backoff_factor ** attempt

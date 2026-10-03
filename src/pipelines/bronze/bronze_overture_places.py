@@ -1,6 +1,6 @@
 # Databricks notebook source
 # COMMAND ----------
-# MAGIC %pip install duckdb
+# MAGIC %pip install -q duckdb
 
 # COMMAND ----------
 import sys

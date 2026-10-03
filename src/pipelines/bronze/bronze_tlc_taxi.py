@@ -1,12 +1,10 @@
 # Databricks notebook source
 # COMMAND ----------
-# MAGIC %pip install pyarrow
-
-# COMMAND ----------
 import sys
 import os
 import uuid
 import urllib.request
+import pandas as pd
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import current_timestamp, lit
@@ -24,21 +22,33 @@ spark.sql(f"CREATE DATABASE IF NOT EXISTS {BRONZE_DB}")
 dataset_meta = DATASETS["tlc_trips"]
 TARGET_TABLE = dataset_meta["bronze_table"]
 
-# Ingest TLC Taxi Zone Lookup (Base spatial mapping)
+# 1. Ingest TLC Taxi Zone Lookup (Base spatial mapping) via Pandas (bypasses DBFS restrictions)
 zone_url = "https://d37ci6vzurychx.cloudfront.net/misc/taxi+_zone_lookup.csv"
-local_zone_file = "/tmp/taxi_zone_lookup.csv"
-urllib.request.urlretrieve(zone_url, local_zone_file)
+pdf_zones = pd.read_csv(zone_url)
+df_zones = spark.createDataFrame(pdf_zones)
+(
+    df_zones.write
+    .format("delta")
+    .mode("overwrite")
+    .option("mergeSchema", "true")
+    .saveAsTable(f"{BRONZE_DB}.tlc_zones_raw")
+)
 
-df_zones = spark.read.csv(local_zone_file, header=True, inferSchema=True)
-df_zones.write.format("delta").mode("overwrite").saveAsTable(f"{BRONZE_DB}.tlc_zones_raw")
-
-# Sample monthly taxi trips (Yellow cab sample)
+# 2. Ingest Sample Taxi Trips (Yellow cab 2024 sample)
 trip_url = "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-01.parquet"
 local_trip_file = "/tmp/yellow_tripdata_sample.parquet"
 
-# Download parquet and read with Spark limit
 urllib.request.urlretrieve(trip_url, local_trip_file)
-df_trips = spark.read.parquet(local_trip_file).limit(100000)
+
+# Read locally via pandas (no DBFS requirement)
+pdf_trips = pd.read_parquet(local_trip_file).head(100000)
+
+# Convert timestamp columns to ISO strings to ensure seamless PySpark schema ingestion
+for col in pdf_trips.columns:
+    if "date" in col.lower() or "time" in col.lower():
+        pdf_trips[col] = pdf_trips[col].astype(str)
+
+df_trips = spark.createDataFrame(pdf_trips)
 
 batch_id = str(uuid.uuid4())
 df_bronze = (

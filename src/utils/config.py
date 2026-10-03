@@ -67,7 +67,7 @@ DATASETS: Dict[str, Dict[str, Any]] = {
     # 4. MTA Subway Entrances and Exits
     "mta_subway_entrances": {
         "domain": DOMAIN_NY_STATE_OPEN_DATA,
-        "dataset_id": "i9rv-hdr5",
+        "dataset_id": "i9wp-a4ja",
         "primary_key": ["station_name", "line", "latitude", "longitude"],
         "bronze_table": f"{BRONZE_DB}.mta_subway_entrances_raw",
         "silver_table": f"{SILVER_DB}.mta_subway_entrances",
@@ -125,7 +125,7 @@ DATASETS: Dict[str, Dict[str, Any]] = {
     # 10. NYC Wi-Fi Hotspot Locations
     "wifi_hotspots": {
         "domain": DOMAIN_NYC_OPEN_DATA,
-        "dataset_id": "yjub-ebmm",
+        "dataset_id": "yjub-udmw",
         "primary_key": ["objectid"],
         "bronze_table": f"{BRONZE_DB}.wifi_hotspots_raw",
         "silver_table": f"{SILVER_DB}.wifi_hotspots",
@@ -134,7 +134,7 @@ DATASETS: Dict[str, Dict[str, Any]] = {
     # 11. Bi-Annual Pedestrian Counts
     "pedestrian_counts": {
         "domain": DOMAIN_NYC_OPEN_DATA,
-        "dataset_id": "755i-7v7j",
+        "dataset_id": "6fi9-q3ta",
         "primary_key": ["loc"],
         "bronze_table": f"{BRONZE_DB}.pedestrian_counts_raw",
         "silver_table": f"{SILVER_DB}.pedestrian_counts",
@@ -143,7 +143,7 @@ DATASETS: Dict[str, Dict[str, Any]] = {
     # 12. Bicycle and Pedestrian Count Sensors
     "bike_ped_sensors": {
         "domain": DOMAIN_NYC_OPEN_DATA,
-        "dataset_id": "788c-i3rm",
+        "dataset_id": "ct66-47at",
         "primary_key": ["sensor_id", "date"],
         "bronze_table": f"{BRONZE_DB}.bike_ped_sensors_raw",
         "silver_table": f"{SILVER_DB}.bike_ped_sensors",
@@ -153,7 +153,7 @@ DATASETS: Dict[str, Dict[str, Any]] = {
     # 13. Zoning GIS Data (DCP Portal / Open Data)
     "zoning_gis": {
         "domain": DOMAIN_NYC_OPEN_DATA,
-        "dataset_id": "tn6u-7c3g",
+        "dataset_id": "hgx4-8ukb",
         "primary_key": ["zonedist"],
         "bronze_table": f"{BRONZE_DB}.zoning_gis_raw",
         "silver_table": f"{SILVER_DB}.zoning_gis",

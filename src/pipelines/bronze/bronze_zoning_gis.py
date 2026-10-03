@@ -1,8 +1,5 @@
 # Databricks notebook source
 # COMMAND ----------
-# MAGIC %pip install requests
-
-# COMMAND ----------
 import sys
 import os
 import uuid
