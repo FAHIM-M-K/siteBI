@@ -85,7 +85,6 @@ for page in client.fetch_all(
 
 print(f"Done. {total_ingested:,} ACRIS lease records -> {TARGET_TABLE}")
 
-# COMMAND ----------
 if spark.catalog.tableExists(TARGET_TABLE):
     spark.sql(f"SELECT count(*) as total_records FROM {TARGET_TABLE}").show()
-    spark.sql(f"SELECT document_id, doc_type, recorded_datetime, doc_amount, recorded_borough FROM {TARGET_TABLE} LIMIT 5").show(truncate=False)
+    spark.sql(f"SELECT * FROM {TARGET_TABLE} LIMIT 5").show(truncate=False)

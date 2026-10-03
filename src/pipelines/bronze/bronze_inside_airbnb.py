@@ -34,8 +34,7 @@ COLS_TO_KEEP = [
 try:
     dbutils.fs.mkdirs(DBFS_PATH)  # noqa: F821
 except Exception:
-    local_dir = "/dbfs" + DBFS_PATH if os.path.exists("/dbfs") else DBFS_PATH
-    os.makedirs(local_dir, exist_ok=True)
+    pass
 
 # List CSV / gzip files
 snapshot_files = []
@@ -45,13 +44,7 @@ try:
         if f.path.endswith(".csv.gz") or f.path.endswith(".csv")
     ]
 except Exception:
-    local_dir = "/dbfs" + DBFS_PATH if os.path.exists("/dbfs") else DBFS_PATH
-    if os.path.exists(local_dir):
-        snapshot_files = [
-            os.path.join(local_dir, f)
-            for f in os.listdir(local_dir)
-            if f.endswith(".csv.gz") or f.endswith(".csv")
-        ]
+    snapshot_files = []
 
 if not snapshot_files:
     print(f"No Airbnb files found in {DBFS_PATH}. Upload listings CSV/GZ to this folder to run.")

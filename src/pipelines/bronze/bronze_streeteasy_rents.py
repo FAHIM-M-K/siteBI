@@ -34,8 +34,7 @@ BEDROOM_MAP = {
 try:
     dbutils.fs.mkdirs(DBFS_PATH)  # noqa: F821
 except Exception:
-    local_dir = "/dbfs" + DBFS_PATH if os.path.exists("/dbfs") else DBFS_PATH
-    os.makedirs(local_dir, exist_ok=True)
+    pass
 
 # List CSV files
 csv_files = []
@@ -45,12 +44,7 @@ try:
         if f.path.endswith(".csv")
     ]
 except Exception:
-    local_dir = "/dbfs" + DBFS_PATH if os.path.exists("/dbfs") else DBFS_PATH
-    if os.path.exists(local_dir):
-        csv_files = [
-            os.path.join(local_dir, f)
-            for f in os.listdir(local_dir) if f.endswith(".csv")
-        ]
+    csv_files = []
 
 if not csv_files:
     print(f"No CSVs found in {DBFS_PATH}. Upload StreetEasy CSV files to this folder to run.")
