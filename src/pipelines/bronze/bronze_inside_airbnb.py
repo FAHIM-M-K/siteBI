@@ -1,16 +1,8 @@
 # Databricks notebook source
 # COMMAND ----------
-# bronze_inside_airbnb.py
-#
-# Ingests Inside Airbnb NYC listing snapshots (gzipped CSV).
-# Download from: http://data.insideairbnb.com/united-states/ny/new-york-city/
-# Upload to DBFS at: /FileStore/sitebi/airbnb/
-#
-# Each snapshot file is named with its date, e.g.: listings_2024-09-04.csv.gz
-# A snapshot_date column is derived from the filename to track each quarterly snapshot.
-# COMMAND ----------
 import sys
 import os
+import re
 import uuid
 import pandas as pd
 
@@ -27,11 +19,10 @@ spark = SparkSession.builder.appName("Bronze_InsideAirbnb").getOrCreate()
 spark.sql(f"CREATE DATABASE IF NOT EXISTS {BRONZE_DB}")
 
 # COMMAND ----------
-dataset_meta  = DATASETS["inside_airbnb"]
-TARGET_TABLE  = dataset_meta["bronze_table"]
-DBFS_PATH     = dataset_meta["dbfs_input_path"]
+dataset_meta = DATASETS["inside_airbnb"]
+TARGET_TABLE = dataset_meta["bronze_table"]
+DBFS_PATH    = dataset_meta["dbfs_input_path"]
 
-# Only ingest these columns — full listing CSV has 70+ columns we don't need
 COLS_TO_KEEP = [
     "id", "name", "host_id", "neighbourhood_cleansed", "neighbourhood_group_cleansed",
     "latitude", "longitude", "room_type", "accommodates", "bedrooms", "beds",
@@ -39,55 +30,63 @@ COLS_TO_KEEP = [
     "reviews_per_month", "calculated_host_listings_count", "license",
 ]
 
+# Ensure staging directory exists
+try:
+    dbutils.fs.mkdirs(DBFS_PATH)  # noqa: F821
+except Exception:
+    local_dir = "/dbfs" + DBFS_PATH if os.path.exists("/dbfs") else DBFS_PATH
+    os.makedirs(local_dir, exist_ok=True)
+
+# List CSV / gzip files
+snapshot_files = []
+try:
+    snapshot_files = [
+        f.path for f in dbutils.fs.ls(DBFS_PATH)  # noqa: F821
+        if f.path.endswith(".csv.gz") or f.path.endswith(".csv")
+    ]
+except Exception:
+    local_dir = "/dbfs" + DBFS_PATH if os.path.exists("/dbfs") else DBFS_PATH
+    if os.path.exists(local_dir):
+        snapshot_files = [
+            os.path.join(local_dir, f)
+            for f in os.listdir(local_dir)
+            if f.endswith(".csv.gz") or f.endswith(".csv")
+        ]
+
+if not snapshot_files:
+    print(f"No Airbnb files found in {DBFS_PATH}. Upload listings CSV/GZ to this folder to run.")
+    try:
+        dbutils.notebook.exit(f"Skipped: No files in {DBFS_PATH}")  # noqa: F821
+    except Exception:
+        sys.exit(0)
+
 # COMMAND ----------
 batch_id        = str(uuid.uuid4())
 files_processed = 0
 
-try:
-    snapshot_files = [
-        f.path for f in dbutils.fs.ls(DBFS_PATH)    # noqa: F821
-        if f.path.endswith(".csv.gz") or f.path.endswith(".csv")
-    ]
-except Exception:
-    local_dir = DBFS_PATH.replace("/dbfs", "").replace("dbfs:", "")
-    snapshot_files = [
-        os.path.join(local_dir, f)
-        for f in os.listdir(local_dir)
-        if f.endswith(".csv.gz") or f.endswith(".csv")
-    ]
-
-if not snapshot_files:
-    raise FileNotFoundError(
-        f"No Airbnb CSV files found at {DBFS_PATH}. "
-        "Download from http://data.insideairbnb.com/united-states/ny/new-york-city/"
-    )
-
 for path in snapshot_files:
-    # Derive snapshot date from filename (e.g. listings_2024-09-04.csv.gz → 2024-09-04)
     basename = os.path.basename(path)
-    # Extract YYYY-MM-DD pattern from filename
-    import re
     date_match = re.search(r"(\d{4}-\d{2}-\d{2})", basename)
     snapshot_date = date_match.group(1) if date_match else "unknown"
 
     local_path = path.replace("dbfs:", "/dbfs")
     compression = "gzip" if local_path.endswith(".gz") else None
 
-    pdf = pd.read_csv(
-        local_path,
-        compression=compression,
-        usecols=lambda c: c in COLS_TO_KEEP,
-        low_memory=False,
-    )
-    pdf["snapshot_date"] = snapshot_date
+    pdf = pd.read_csv(local_path, compression=compression, low_memory=False)
+    available_cols = [c for c in COLS_TO_KEEP if c in pdf.columns]
+    pdf = pdf[available_cols].copy()
 
-    # Strip $ from price column
     if "price" in pdf.columns:
         pdf["price"] = (
-            pdf["price"].astype(str)
-            .str.replace(r"[\$,]", "", regex=True)
-            .pipe(pd.to_numeric, errors="coerce")
+            pdf["price"]
+            .astype(str)
+            .str.replace("$", "", regex=False)
+            .str.replace(",", "", regex=False)
+            .str.strip()
         )
+        pdf["price"] = pd.to_numeric(pdf["price"], errors="coerce")
+
+    pdf["snapshot_date"] = snapshot_date
 
     df = spark.createDataFrame(pdf)
     df = (
@@ -105,15 +104,11 @@ for path in snapshot_files:
         .saveAsTable(TARGET_TABLE)
     )
     files_processed += 1
-    print(f"  ✓ {basename} (snapshot={snapshot_date}): {len(pdf):,} listings")
+    print(f"Processed {basename} ({snapshot_date}): {len(pdf):,} rows")
 
-print(f"\nDone. {files_processed} snapshots → {TARGET_TABLE}")
+print(f"Done. {files_processed} files -> {TARGET_TABLE}")
 
 # COMMAND ----------
 if spark.catalog.tableExists(TARGET_TABLE):
     spark.sql(f"SELECT count(*) as total_records FROM {TARGET_TABLE}").show()
-    spark.sql(f"""
-        SELECT snapshot_date, count(*) as listings, round(avg(price),2) as avg_nightly_price
-        FROM {TARGET_TABLE}
-        GROUP BY snapshot_date ORDER BY snapshot_date
-    """).show()
+    spark.sql(f"SELECT * FROM {TARGET_TABLE} LIMIT 5").show(truncate=False)

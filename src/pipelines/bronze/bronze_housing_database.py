@@ -1,12 +1,5 @@
 # Databricks notebook source
 # COMMAND ----------
-# bronze_housing_database.py
-#
-# Ingests NYC HPD Housing Database via Socrata API.
-# Dataset ID: 6umk-irkx
-# Tracks all residential construction activity — new units added, alterations,
-# demolitions — used as the housing supply pipeline signal in the pricing model.
-# COMMAND ----------
 import sys
 import os
 import uuid
@@ -24,7 +17,7 @@ from src.utils.config import (
     DOMAIN_NYC_OPEN_DATA,
     NYC_OPEN_DATA_APP_TOKEN,
 )
-from src.utils.socrata_client import SocrataClient
+from src.utils.socrata_client import SocrataClient, flatten_records
 
 spark = SparkSession.builder.appName("Bronze_HousingDatabase").getOrCreate()
 spark.sql(f"CREATE DATABASE IF NOT EXISTS {BRONZE_DB}")
@@ -48,7 +41,8 @@ total_ingested = 0
 for page in client.fetch_all(dataset_id=DATASET_ID, page_size=25000):
     if not page:
         continue
-    df = spark.createDataFrame(page)
+    cleaned = flatten_records(page)
+    df = spark.createDataFrame(cleaned)
     df = (
         df
         .withColumn("_ingested_at", current_timestamp())
@@ -64,7 +58,7 @@ for page in client.fetch_all(dataset_id=DATASET_ID, page_size=25000):
     )
     total_ingested += len(page)
 
-print(f"Done. {total_ingested:,} records → {TARGET_TABLE}")
+print(f"Done. {total_ingested:,} records -> {TARGET_TABLE}")
 
 # COMMAND ----------
 if spark.catalog.tableExists(TARGET_TABLE):

@@ -1,20 +1,5 @@
 # Databricks notebook source
 # COMMAND ----------
-# bronze_streeteasy_rents.py
-#
-# Ingests StreetEasy Median Asking Rent CSVs (residential).
-# StreetEasy has no public API — CSVs must be manually downloaded from:
-#   https://streeteasy.com/blog/data-dashboard/
-# and uploaded to DBFS at: /FileStore/sitebi/streeteasy/
-#
-# Each CSV file has the structure: one row per neighborhood per month.
-# Files are typically named by bedroom type, e.g.:
-#   - medianAskingRent_All.csv
-#   - medianAskingRent_Studio.csv
-#   - medianAskingRent_OneBd.csv
-#   - medianAskingRent_TwoBd.csv
-#   - medianAskingRent_ThreePlusBd.csv
-# COMMAND ----------
 import sys
 import os
 import uuid
@@ -33,11 +18,10 @@ spark = SparkSession.builder.appName("Bronze_StreetEasy_Rents").getOrCreate()
 spark.sql(f"CREATE DATABASE IF NOT EXISTS {BRONZE_DB}")
 
 # COMMAND ----------
-dataset_meta  = DATASETS["streeteasy_rents"]
-TARGET_TABLE  = dataset_meta["bronze_table"]
-DBFS_PATH     = dataset_meta["dbfs_input_path"]
+dataset_meta = DATASETS["streeteasy_rents"]
+TARGET_TABLE = dataset_meta["bronze_table"]
+DBFS_PATH    = dataset_meta["dbfs_input_path"]
 
-# Bedroom size label inferred from filename
 BEDROOM_MAP = {
     "all":         "all",
     "studio":      "studio",
@@ -46,29 +30,38 @@ BEDROOM_MAP = {
     "threeplusbd": "3br+",
 }
 
-# COMMAND ----------
-batch_id        = str(uuid.uuid4())
-files_processed = 0
+# Ensure staging directory exists
+try:
+    dbutils.fs.mkdirs(DBFS_PATH)  # noqa: F821
+except Exception:
+    local_dir = "/dbfs" + DBFS_PATH if os.path.exists("/dbfs") else DBFS_PATH
+    os.makedirs(local_dir, exist_ok=True)
 
-# List all CSVs in the DBFS staging folder
+# List CSV files
+csv_files = []
 try:
     csv_files = [
-        f.path for f in dbutils.fs.ls(DBFS_PATH)    # noqa: F821  (dbutils injected by Databricks)
+        f.path for f in dbutils.fs.ls(DBFS_PATH)  # noqa: F821
         if f.path.endswith(".csv")
     ]
 except Exception:
-    # Fallback for local testing outside Databricks
-    local_dir = DBFS_PATH.replace("/dbfs", "").replace("dbfs:", "")
-    csv_files = [
-        os.path.join(local_dir, f)
-        for f in os.listdir(local_dir) if f.endswith(".csv")
-    ]
+    local_dir = "/dbfs" + DBFS_PATH if os.path.exists("/dbfs") else DBFS_PATH
+    if os.path.exists(local_dir):
+        csv_files = [
+            os.path.join(local_dir, f)
+            for f in os.listdir(local_dir) if f.endswith(".csv")
+        ]
 
 if not csv_files:
-    raise FileNotFoundError(
-        f"No CSVs found at {DBFS_PATH}. "
-        "Download from https://streeteasy.com/blog/data-dashboard/ and upload to DBFS."
-    )
+    print(f"No CSVs found in {DBFS_PATH}. Upload StreetEasy CSV files to this folder to run.")
+    try:
+        dbutils.notebook.exit(f"Skipped: No files in {DBFS_PATH}")  # noqa: F821
+    except Exception:
+        sys.exit(0)
+
+# COMMAND ----------
+batch_id        = str(uuid.uuid4())
+files_processed = 0
 
 for path in csv_files:
     filename = os.path.basename(path).lower().replace("medianaskingrents_", "").replace(".csv", "")
@@ -77,9 +70,7 @@ for path in csv_files:
     local_path = path.replace("dbfs:", "/dbfs")
     pdf = pd.read_csv(local_path)
 
-    # StreetEasy CSVs: first column = area_name, remaining = month columns (YYYY-MM format)
-    # Melt from wide → long format
-    id_col = pdf.columns[0]   # usually "areaName" or "Area"
+    id_col = pdf.columns[0]
     pdf = pdf.rename(columns={id_col: "area_name"})
     pdf_long = pdf.melt(id_vars=["area_name"], var_name="period_start", value_name="median_asking_rent")
     pdf_long["bedroom_size"] = bedroom_size
@@ -101,15 +92,11 @@ for path in csv_files:
         .saveAsTable(TARGET_TABLE)
     )
     files_processed += 1
-    print(f"  ✓ {os.path.basename(path)} ({bedroom_size}): {len(pdf_long):,} rows")
+    print(f"Processed {os.path.basename(path)} ({bedroom_size}): {len(pdf_long):,} rows")
 
-print(f"\nDone. {files_processed} files → {TARGET_TABLE}")
+print(f"Done. {files_processed} files -> {TARGET_TABLE}")
 
 # COMMAND ----------
 if spark.catalog.tableExists(TARGET_TABLE):
     spark.sql(f"SELECT count(*) as total_records FROM {TARGET_TABLE}").show()
-    spark.sql(f"""
-        SELECT bedroom_size, count(*) as rows, min(period_start) as earliest, max(period_start) as latest
-        FROM {TARGET_TABLE}
-        GROUP BY bedroom_size ORDER BY bedroom_size
-    """).show()
+    spark.sql(f"SELECT * FROM {TARGET_TABLE} LIMIT 5").show(truncate=False)

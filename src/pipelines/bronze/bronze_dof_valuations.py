@@ -1,13 +1,5 @@
 # Databricks notebook source
 # COMMAND ----------
-# bronze_dof_valuations.py
-#
-# Ingests NYC Department of Finance (DOF) Property Valuation & Assessment Data.
-# Dataset ID: yjxr-fw8i
-# Primary Key: bble (Borough-Block-Lot-Easement)
-# Captures market value, assessed value, tax class, and building characteristics
-# used as the baseline asset value signal in the pricing engine.
-# COMMAND ----------
 import sys
 import os
 import uuid
@@ -45,12 +37,7 @@ batch_id       = str(uuid.uuid4())
 source_uri     = f"socrata://{DOMAIN_NYC_OPEN_DATA}/{DATASET_ID}"
 total_ingested = 0
 
-# Key fields to optimize payload and network latency
-SELECT_FIELDS = (
-    "bble,boro,block,lot,ease,taxclass,bldg_class,tot_unit,res_unit,"
-    "curmkttot,curacttot,curtrntot,curtxbtot,pyr_mkttot,yrbuilt,gross_sqft,"
-    "valref,year"
-)
+SELECT_FIELDS = "bble,boro,block,lot,owner,bldgcl,taxclass,stories,fullval,avland,avtot,exland,extot,staddr,year,valtype"
 
 # COMMAND ----------
 for page in client.fetch_all(
@@ -78,9 +65,9 @@ for page in client.fetch_all(
     total_ingested += len(page)
     print(f"Ingested {len(page):,} records (cumulative: {total_ingested:,})")
 
-print(f"Done. {total_ingested:,} valuation records → {TARGET_TABLE}")
+print(f"Done. {total_ingested:,} valuation records -> {TARGET_TABLE}")
 
 # COMMAND ----------
 if spark.catalog.tableExists(TARGET_TABLE):
     spark.sql(f"SELECT count(*) as total_records FROM {TARGET_TABLE}").show()
-    spark.sql(f"SELECT bble, boro, block, lot, curmkttot, curtxbtot, yrbuilt, gross_sqft FROM {TARGET_TABLE} LIMIT 5").show(truncate=False)
+    spark.sql(f"SELECT bble, boro, block, lot, fullval, avtot, year FROM {TARGET_TABLE} LIMIT 5").show(truncate=False)

@@ -226,7 +226,7 @@ DATASETS: Dict[str, Dict[str, Any]] = {
     # 21. NYC Housing Database — HPD Residential Construction (Supply Pipeline)
     "housing_database": {
         "domain": DOMAIN_NYC_OPEN_DATA,
-        "dataset_id": "6umk-irkx",
+        "dataset_id": "br6q-ssj3",
         "primary_key": ["job_number"],
         "bronze_table": f"{BRONZE_DB}.housing_database_raw",
         "silver_table": f"{SILVER_DB}.housing_database",
@@ -262,15 +262,6 @@ DATASETS: Dict[str, Dict[str, Any]] = {
         "bronze_table": f"{BRONZE_DB}.dof_valuations_raw",
         "silver_table": f"{SILVER_DB}.dof_valuations",
         "watermark_col": None,  # Full snapshot annually
-    },
-    # 25. NYC Vacant Storefronts Registry (Commercial Vacancy)
-    "vacant_storefronts_commercial": {
-        "domain": DOMAIN_NYC_OPEN_DATA,
-        "dataset_id": "92uh-c6xg",
-        "primary_key": ["bbl", "survey_year"],
-        "bronze_table": f"{BRONZE_DB}.vacant_storefronts_commercial_raw",
-        "silver_table": f"{SILVER_DB}.vacant_storefronts_commercial",
-        "watermark_col": None,
     },
 }
 

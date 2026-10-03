@@ -1,12 +1,5 @@
 # Databricks notebook source
 # COMMAND ----------
-# bronze_rent_guidelines.py
-#
-# Ingests NYC Rent Guidelines Board (RGB) annual allowable lease increase rates
-# for rent-stabilized apartments and lofts (Orders 45–56, 2013–2025).
-# Small static lookup table maintained annually; provides policy ceiling signal
-# for rent growth and multifamily underwriting.
-# COMMAND ----------
 import sys
 import os
 import uuid
@@ -27,8 +20,6 @@ spark.sql(f"CREATE DATABASE IF NOT EXISTS {BRONZE_DB}")
 dataset_meta = DATASETS["rent_guidelines"]
 TARGET_TABLE = dataset_meta["bronze_table"]
 
-# Historical NYC RGB Orders (Orders 45 through 56: 2013–2025)
-# Rates represent approved percentage increases for rent-stabilized residential units.
 RGB_ORDERS_DATA = [
     {"order_number": 45, "order_year": 2013, "effective_start": "2013-10-01", "effective_end": "2014-09-30", "lease_type": "1_year", "increase_pct": 4.00},
     {"order_number": 45, "order_year": 2013, "effective_start": "2013-10-01", "effective_end": "2014-09-30", "lease_type": "2_year", "increase_pct": 7.75},
@@ -76,7 +67,7 @@ df = (
     .saveAsTable(TARGET_TABLE)
 )
 
-print(f"Done. {len(RGB_ORDERS_DATA)} RGB order rate records → {TARGET_TABLE}")
+print(f"Done. {len(RGB_ORDERS_DATA)} RGB order rate records -> {TARGET_TABLE}")
 
 # COMMAND ----------
 if spark.catalog.tableExists(TARGET_TABLE):
