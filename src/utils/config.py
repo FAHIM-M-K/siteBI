@@ -52,7 +52,7 @@ DATASETS: Dict[str, Dict[str, Any]] = {
         "primary_key": ["bbl"],
         "bronze_table": f"{BRONZE_DB}.pluto_raw",
         "silver_table": f"{SILVER_DB}.pluto",
-        "watermark_col": None,  # Full snapshot overwrite
+        "watermark_col": None,
     },
     # 3. MTA Subway Hourly Ridership
     "mta_ridership": {
@@ -71,7 +71,7 @@ DATASETS: Dict[str, Dict[str, Any]] = {
         "primary_key": ["station_name", "line", "latitude", "longitude"],
         "bronze_table": f"{BRONZE_DB}.mta_subway_entrances_raw",
         "silver_table": f"{SILVER_DB}.mta_subway_entrances",
-        "watermark_col": None,  # Reference snapshot
+        "watermark_col": None,
     },
     # 5. DOHMH Restaurant Inspection Results
     "restaurant_inspections": {
@@ -81,7 +81,7 @@ DATASETS: Dict[str, Dict[str, Any]] = {
         "bronze_table": f"{BRONZE_DB}.restaurant_inspections_raw",
         "silver_table": f"{SILVER_DB}.restaurant_inspections",
         "watermark_col": "inspection_date",
-        "default_watermark": "2020-01-01T00:00:00.000",
+        "default_watermark": "2023-01-01T00:00:00.000",
     },
     # 6. 311 Service Requests
     "311_requests": {
@@ -91,7 +91,108 @@ DATASETS: Dict[str, Dict[str, Any]] = {
         "bronze_table": f"{BRONZE_DB}.service_requests_311_raw",
         "silver_table": f"{SILVER_DB}.service_requests_311",
         "watermark_col": "created_date",
-        "default_watermark": "2023-01-01T00:00:00.000",
+        "default_watermark": "2025-01-01T00:00:00.000",
+    },
+    # 7. Storefronts Reported Vacant or Not
+    "vacant_storefronts": {
+        "domain": DOMAIN_NYC_OPEN_DATA,
+        "dataset_id": "92iy-9c3n",
+        "primary_key": ["property_street_address", "borough", "block", "lot"],
+        "bronze_table": f"{BRONZE_DB}.vacant_storefronts_raw",
+        "silver_table": f"{SILVER_DB}.vacant_storefronts",
+        "watermark_col": None,
+    },
+    # 8. NYC Rolling Calendar Sales
+    "rolling_sales": {
+        "domain": DOMAIN_NYC_OPEN_DATA,
+        "dataset_id": "w2pb-icbu",
+        "primary_key": ["borough", "block", "lot", "sale_price", "sale_date"],
+        "bronze_table": f"{BRONZE_DB}.rolling_sales_raw",
+        "silver_table": f"{SILVER_DB}.rolling_sales",
+        "watermark_col": "sale_date",
+        "default_watermark": "2024-01-01T00:00:00.000",
+    },
+    # 9. DOB Job Application Filings
+    "dob_job_filings": {
+        "domain": DOMAIN_NYC_OPEN_DATA,
+        "dataset_id": "ic3t-wcy2",
+        "primary_key": ["job__"],
+        "bronze_table": f"{BRONZE_DB}.dob_job_filings_raw",
+        "silver_table": f"{SILVER_DB}.dob_job_filings",
+        "watermark_col": "latest_action_date",
+        "default_watermark": "2024-01-01T00:00:00.000",
+    },
+    # 10. NYC Wi-Fi Hotspot Locations
+    "wifi_hotspots": {
+        "domain": DOMAIN_NYC_OPEN_DATA,
+        "dataset_id": "yjub-ebmm",
+        "primary_key": ["objectid"],
+        "bronze_table": f"{BRONZE_DB}.wifi_hotspots_raw",
+        "silver_table": f"{SILVER_DB}.wifi_hotspots",
+        "watermark_col": None,
+    },
+    # 11. Bi-Annual Pedestrian Counts
+    "pedestrian_counts": {
+        "domain": DOMAIN_NYC_OPEN_DATA,
+        "dataset_id": "755i-7v7j",
+        "primary_key": ["loc"],
+        "bronze_table": f"{BRONZE_DB}.pedestrian_counts_raw",
+        "silver_table": f"{SILVER_DB}.pedestrian_counts",
+        "watermark_col": None,
+    },
+    # 12. Bicycle and Pedestrian Count Sensors
+    "bike_ped_sensors": {
+        "domain": DOMAIN_NYC_OPEN_DATA,
+        "dataset_id": "788c-i3rm",
+        "primary_key": ["sensor_id", "date"],
+        "bronze_table": f"{BRONZE_DB}.bike_ped_sensors_raw",
+        "silver_table": f"{SILVER_DB}.bike_ped_sensors",
+        "watermark_col": "date",
+        "default_watermark": "2024-01-01T00:00:00.000",
+    },
+    # 13. Zoning GIS Data (DCP Portal / Open Data)
+    "zoning_gis": {
+        "domain": DOMAIN_NYC_OPEN_DATA,
+        "dataset_id": "tn6u-7c3g",
+        "primary_key": ["zonedist"],
+        "bronze_table": f"{BRONZE_DB}.zoning_gis_raw",
+        "silver_table": f"{SILVER_DB}.zoning_gis",
+        "watermark_col": None,
+    },
+    # 14. US Census ACS 5-Year Data
+    "census_acs": {
+        "primary_key": ["state", "county", "tract"],
+        "bronze_table": f"{BRONZE_DB}.census_acs_raw",
+        "silver_table": f"{SILVER_DB}.census_acs",
+        "watermark_col": None,
+    },
+    # 15. Census TIGER/Line Shapefiles (Tract Boundaries)
+    "census_tiger_tracts": {
+        "primary_key": ["geoid"],
+        "bronze_table": f"{BRONZE_DB}.census_tiger_tracts_raw",
+        "silver_table": f"{SILVER_DB}.census_tiger_tracts",
+        "watermark_col": None,
+    },
+    # 16. TLC Trip Record Data (NYC TLC Taxi & Limousine Commission)
+    "tlc_trips": {
+        "primary_key": ["pulocationid", "dolocationid", "pickup_datetime"],
+        "bronze_table": f"{BRONZE_DB}.tlc_trips_raw",
+        "silver_table": f"{SILVER_DB}.tlc_trips",
+        "watermark_col": None,
+    },
+    # 17. OpenStreetMap POIs (Overpass API)
+    "osm_pois": {
+        "primary_key": ["osm_id"],
+        "bronze_table": f"{BRONZE_DB}.osm_pois_raw",
+        "silver_table": f"{SILVER_DB}.osm_pois",
+        "watermark_col": None,
+    },
+    # 18. Overture Maps Places
+    "overture_places": {
+        "primary_key": ["id"],
+        "bronze_table": f"{BRONZE_DB}.overture_places_raw",
+        "silver_table": f"{SILVER_DB}.overture_places",
+        "watermark_col": None,
     },
 }
 
