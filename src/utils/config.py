@@ -173,11 +173,17 @@ DATASETS: Dict[str, Dict[str, Any]] = {
         "silver_table": f"{SILVER_DB}.census_tiger_tracts",
         "watermark_col": None,
     },
-    # 16. TLC Trip Record Data (NYC TLC Taxi & Limousine Commission)
+    # 16. TLC Trip Data — Zone-Level Monthly Aggregates (multi-year, CE-friendly)
+    # Strategy: Download pre-built monthly Parquet from TLC, aggregate to zone level immediately.
+    # Never persist raw trip rows. Covers 2019–present for historical trend features.
     "tlc_trips": {
-        "primary_key": ["pulocationid", "dolocationid", "pickup_datetime"],
-        "bronze_table": f"{BRONZE_DB}.tlc_trips_raw",
-        "silver_table": f"{SILVER_DB}.tlc_trips",
+        # Base URL template; pipeline substitutes {year} and {month}
+        "base_url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_{year}-{month:02d}.parquet",
+        "zone_lookup_url": "https://d37ci6vzurychx.cloudfront.net/misc/taxi+_zone_lookup.csv",
+        "years": list(range(2019, 2026)),   # 2019–2025 for historical trends
+        "primary_key": ["pulocationid", "year", "month"],
+        "bronze_table": f"{BRONZE_DB}.tlc_zone_agg_raw",   # zone-level aggregates only
+        "silver_table": f"{SILVER_DB}.tlc_zone_agg",
         "watermark_col": None,
     },
     # 17. OpenStreetMap POIs (Overpass API)
@@ -192,6 +198,78 @@ DATASETS: Dict[str, Dict[str, Any]] = {
         "primary_key": ["id"],
         "bronze_table": f"{BRONZE_DB}.overture_places_raw",
         "silver_table": f"{SILVER_DB}.overture_places",
+        "watermark_col": None,
+    },
+
+    # ── PRICING ENGINE SOURCES (19–25) ────────────────────────────────────────
+
+    # 19. StreetEasy Median Asking Rents (Residential)
+    # Manual CSV download from https://streeteasy.com/blog/data-dashboard/
+    # Place CSVs in DBFS at /FileStore/sitebi/streeteasy/ before running pipeline.
+    "streeteasy_rents": {
+        "dbfs_input_path": "/FileStore/sitebi/streeteasy/",
+        "primary_key": ["area_name", "bedroom_size", "period_start"],
+        "bronze_table": f"{BRONZE_DB}.streeteasy_rents_raw",
+        "silver_table": f"{SILVER_DB}.streeteasy_rents",
+        "watermark_col": None,
+    },
+    # 20. Inside Airbnb — NYC Listing Snapshots (Residential / Short-Term Rental)
+    # Download from http://data.insideairbnb.com/united-states/ny/new-york-city/
+    # Place gzipped CSV in DBFS at /FileStore/sitebi/airbnb/ before running pipeline.
+    "inside_airbnb": {
+        "dbfs_input_path": "/FileStore/sitebi/airbnb/",
+        "primary_key": ["id", "snapshot_date"],
+        "bronze_table": f"{BRONZE_DB}.inside_airbnb_raw",
+        "silver_table": f"{SILVER_DB}.inside_airbnb",
+        "watermark_col": None,
+    },
+    # 21. NYC Housing Database — HPD Residential Construction (Supply Pipeline)
+    "housing_database": {
+        "domain": DOMAIN_NYC_OPEN_DATA,
+        "dataset_id": "6umk-irkx",
+        "primary_key": ["job_number"],
+        "bronze_table": f"{BRONZE_DB}.housing_database_raw",
+        "silver_table": f"{SILVER_DB}.housing_database",
+        "watermark_col": None,
+    },
+    # 22. NYC Rent Guidelines Board — Annual Allowable Increases (Stabilized Units)
+    # Small static table; manually maintained from RGB website each June.
+    "rent_guidelines": {
+        "primary_key": ["order_year", "lease_type"],
+        "bronze_table": f"{BRONZE_DB}.rent_guidelines_raw",
+        "silver_table": f"{SILVER_DB}.rent_guidelines",
+        "watermark_col": None,
+    },
+    # 23. NYC ACRIS — Commercial Lease Records
+    # Master table + Legals joined on document_id to get BBL for spatial join.
+    "acris_leases": {
+        "domain": DOMAIN_NYC_OPEN_DATA,
+        "master_dataset_id": "bnx9-e6tj",  # ACRIS Real Property Master
+        "legals_dataset_id": "8h5j-fqxa",  # ACRIS Real Property Legals
+        "primary_key": ["document_id"],
+        "bronze_table": f"{BRONZE_DB}.acris_leases_raw",
+        "silver_table": f"{SILVER_DB}.acris_leases",
+        "watermark_col": "recorded_datetime",
+        "default_watermark": "2015-01-01T00:00:00.000",
+        # Filter to lease document types only
+        "doc_type_filter": ["LEAS", "STLE", "ASST"],
+    },
+    # 24. NYC DOF Property Valuation and Assessment Data
+    "dof_valuations": {
+        "domain": DOMAIN_NYC_OPEN_DATA,
+        "dataset_id": "yjxr-fw8i",
+        "primary_key": ["bble"],
+        "bronze_table": f"{BRONZE_DB}.dof_valuations_raw",
+        "silver_table": f"{SILVER_DB}.dof_valuations",
+        "watermark_col": None,  # Full snapshot annually
+    },
+    # 25. NYC Vacant Storefronts Registry (Commercial Vacancy)
+    "vacant_storefronts_commercial": {
+        "domain": DOMAIN_NYC_OPEN_DATA,
+        "dataset_id": "92uh-c6xg",
+        "primary_key": ["bbl", "survey_year"],
+        "bronze_table": f"{BRONZE_DB}.vacant_storefronts_commercial_raw",
+        "silver_table": f"{SILVER_DB}.vacant_storefronts_commercial",
         "watermark_col": None,
     },
 }
