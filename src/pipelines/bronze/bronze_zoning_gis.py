@@ -70,5 +70,5 @@ for page in client.fetch_all(
 
 # COMMAND ----------
 if spark.catalog.tableExists(TARGET_TABLE):
-    spark.sql(f"SELECT count(*) as total_zoning_polygons FROM {TARGET_TABLE}").show()
-    spark.sql(f"SELECT zonedist, count(*) as count FROM {TARGET_TABLE} GROUP BY 1 ORDER BY 2 DESC LIMIT 10").show()
+    spark.sql(f"SELECT count(*) as total_zoning_records FROM {TARGET_TABLE}").show()
+    spark.sql(f"SELECT * FROM {TARGET_TABLE} LIMIT 5").show()

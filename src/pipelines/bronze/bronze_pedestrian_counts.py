@@ -63,11 +63,4 @@ for page in client.fetch_all(
 # COMMAND ----------
 if spark.catalog.tableExists(TARGET_TABLE):
     spark.sql(f"SELECT count(*) as total_records FROM {TARGET_TABLE}").show()
-    spark.sql(f"""
-        SELECT borough, count(*) as count
-        FROM {TARGET_TABLE}
-        WHERE _batch_id = '{batch_id}'
-        GROUP BY 1
-        ORDER BY 2 DESC
-        LIMIT 10
-    """).show(truncate=False)
+    spark.sql(f"SELECT * FROM {TARGET_TABLE} LIMIT 5").show()

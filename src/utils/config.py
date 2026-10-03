@@ -97,7 +97,7 @@ DATASETS: Dict[str, Dict[str, Any]] = {
     "vacant_storefronts": {
         "domain": DOMAIN_NYC_OPEN_DATA,
         "dataset_id": "92iy-9c3n",
-        "primary_key": ["property_street_address", "borough", "block", "lot"],
+        "primary_key": ["borough_block_lot", "reporting_year"],
         "bronze_table": f"{BRONZE_DB}.vacant_storefronts_raw",
         "silver_table": f"{SILVER_DB}.vacant_storefronts",
         "watermark_col": None,
@@ -135,7 +135,7 @@ DATASETS: Dict[str, Dict[str, Any]] = {
     "pedestrian_counts": {
         "domain": DOMAIN_NYC_OPEN_DATA,
         "dataset_id": "6fi9-q3ta",
-        "primary_key": ["loc"],
+        "primary_key": ["location", "hour_beginning"],
         "bronze_table": f"{BRONZE_DB}.pedestrian_counts_raw",
         "silver_table": f"{SILVER_DB}.pedestrian_counts",
         "watermark_col": None,
@@ -144,7 +144,7 @@ DATASETS: Dict[str, Dict[str, Any]] = {
     "bike_ped_sensors": {
         "domain": DOMAIN_NYC_OPEN_DATA,
         "dataset_id": "ct66-47at",
-        "primary_key": ["sensor_id", "date"],
+        "primary_key": ["sensor_id", "timestamp"],
         "bronze_table": f"{BRONZE_DB}.bike_ped_sensors_raw",
         "silver_table": f"{SILVER_DB}.bike_ped_sensors",
         "watermark_col": "date",
@@ -154,7 +154,7 @@ DATASETS: Dict[str, Dict[str, Any]] = {
     "zoning_gis": {
         "domain": DOMAIN_NYC_OPEN_DATA,
         "dataset_id": "hgx4-8ukb",
-        "primary_key": ["zonedist"],
+        "primary_key": ["project_id"],
         "bronze_table": f"{BRONZE_DB}.zoning_gis_raw",
         "silver_table": f"{SILVER_DB}.zoning_gis",
         "watermark_col": None,
