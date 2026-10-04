@@ -21,9 +21,6 @@ from src.utils.config import (
 from src.utils.socrata_client import SocrataClient, flatten_records
 
 spark = SparkSession.builder.appName("Bronze_DOF_Valuations").getOrCreate()
-spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
-spark.conf.set("spark.databricks.delta.optimizeWrite.enabled", "true")
-spark.conf.set("spark.databricks.delta.autoCompact.enabled", "true")
 spark.sql(f"CREATE DATABASE IF NOT EXISTS {BRONZE_DB}")
 
 # COMMAND ----------
